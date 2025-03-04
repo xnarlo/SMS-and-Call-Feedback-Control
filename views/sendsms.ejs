@@ -1,7 +1,5 @@
 <form action="/send" method="POST">
-    <label>Contact Number:</label>
-    <input type="text" name="number" value="<%= number %>" required>
-    <label>Message:</label>
-    <input type="text" name="message" value="<%= message %>" required>
+    <input type="text" name="number" placeholder="Enter Phone Number" required>
+    <textarea name="message" placeholder="Enter Message" required></textarea>
     <button type="submit">Send SMS</button>
 </form>

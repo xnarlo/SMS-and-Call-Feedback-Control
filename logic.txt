@@ -1,0 +1,7 @@
+Two Views: There are two separate views, one for sending SMS (sendsms.ejs) and one for making calls (callclient.ejs). Each view has its own form and button for the respective action.
+
+Send SMS Button: When the "Send SMS" button in sendsms.ejs is clicked, the data sent to the server includes the SEND_SMS command followed by the phone number and message. The data format is SEND_SMS,<number>,<message>.
+
+Make Call Button: When the "Make Call" button in callclient.ejs is clicked, the data sent to the server includes the MAKE_CALL command followed by the phone number. The data format is MAKE_CALL,<number>.
+
+Arduino Parsing: The Arduino code reads the incoming data from the serial port. It checks whether the data starts with SEND_SMS or MAKE_CALL and then calls the appropriate function (sendSMS or makeCall) with the parsed phone number (and message for SMS).
