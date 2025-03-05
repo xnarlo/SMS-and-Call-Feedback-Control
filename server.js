@@ -117,7 +117,7 @@ app.post("/send", async (req, res) => {
 
 // ** Call Handling **
 app.post("/call", (req, res) => {
-    const { number } = body.req;
+    const { number } = req.body; // ✅ Correct
     const command = `MAKE_CALL,${number}\n`;
     serialPort.write(command);
     res.send("📞 Call command sent");
