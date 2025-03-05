@@ -16,26 +16,48 @@
 
     <script>
         const socket = io();
-
+        let totalParts = 0;
+        let sentParts = 0;
+        let failed = false;
+    
         document.getElementById('smsForm').addEventListener('submit', function(event) {
             event.preventDefault();
             const formData = new FormData(this);
-
+            sentParts = 0; // Reset counter
+            failed = false;
+    
             fetch('/send', {
                 method: 'POST',
                 body: new URLSearchParams(formData)
             }).then(response => response.text())
-              .then(data => console.log("SMS command sent, waiting for response..."));
-
-            // Wait for SMS status from Arduino
+              .then(data => {
+                  console.log("📨 SMS sending started...");
+              });
+    
+            // Listen for SMS status from Arduino
             socket.on('sms_status', (status) => {
                 if (status === "SMS_SENT") {
-                    alert("✅ SMS Sent Successfully!");
+                    sentParts++;
+                    console.log(`✅ Part ${sentParts}/${totalParts} sent.`);
+    
+                    // If all parts are sent, show success alert
+                    if (sentParts === totalParts) {
+                        alert("✅ All SMS parts sent successfully!");
+                    }
                 } else if (status === "SMS_FAILED") {
-                    alert("❌ SMS Sending Failed!");
+                    failed = true;
+                    alert("❌ SMS Sending Failed! Some messages may not have been sent.");
                 }
             });
+    
+            // Fetch the total number of parts
+            fetch('/get-message-parts')
+                .then(response => response.json())
+                .then(data => {
+                    totalParts = data.totalParts;
+                });
         });
     </script>
+    
 </body>
 </html>
