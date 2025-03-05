@@ -2,7 +2,7 @@
     <input type="text" name="number" placeholder="Enter Phone Number" required>
     <button type="submit">Make Call</button>
 </form>
-<form action="/endcall" method="POST">
+<form id="endCallForm">
     <button type="submit">End Call</button>
 </form>
 <script>
@@ -19,6 +19,17 @@
         .then(response => response.text())
         .then(data => {
             alert('Call initiated');
+        });
+    });
+
+    document.getElementById('endCallForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        fetch('/endcall', {
+            method: 'POST',
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert('Call Dropped');
         });
     });
 </script>
