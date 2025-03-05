@@ -1,5 +1,20 @@
-<form action="/send" method="POST">
+<form id="smsForm">
     <input type="text" name="number" placeholder="Enter Phone Number" required>
     <textarea name="message" placeholder="Enter Message" required></textarea>
     <button type="submit">Send SMS</button>
 </form>
+
+<script>
+    document.getElementById('smsForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        fetch('/send', {
+            method: 'POST',
+            body: new URLSearchParams(formData)
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert('Message Sent');
+        });
+    });
+</script>
