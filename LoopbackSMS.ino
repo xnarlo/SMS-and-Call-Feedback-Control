@@ -17,7 +17,6 @@ void loop() {
         if (receivedData.startsWith("MAKE_CALL")) {
             Serial.println("🔄 Processing Call Command...");
 
-            // Parse the number
             int firstComma = receivedData.indexOf(',');
 
             if (firstComma == -1) {
@@ -26,7 +25,6 @@ void loop() {
             }
 
             String phoneNumber = receivedData.substring(firstComma + 1);
-
             Serial.print("📞 Making Call - Number: ");
             Serial.println(phoneNumber);
 
@@ -34,7 +32,6 @@ void loop() {
         } else if (receivedData.startsWith("SEND_SMS")) {
             Serial.println("🔄 Processing SMS Command...");
 
-            // Parse the number and message
             int firstComma = receivedData.indexOf(',');
             int secondComma = receivedData.indexOf(',', firstComma + 1);
 
@@ -65,7 +62,7 @@ void sendSMS(String number, String message) {
     Serial.print("🔄 GSM Module: Sending SMS to ");
     Serial.println(number);
 
-    Serial1.println("AT"); // Test if the module is responding
+    Serial1.println("AT"); // Check if GSM module is responding
     delay(1000);
     
     Serial1.println("AT+CMGF=1"); // Set SMS mode to TEXT
@@ -82,8 +79,8 @@ void sendSMS(String number, String message) {
     Serial1.write(26); // CTRL+Z to send the message
     delay(1000);
 
-    // ✅ Wait for GSM confirmation
-    String response = waitForResponse(10000); // Wait for up to 10 seconds
+    // ✅ Wait for GSM response
+    String response = waitForResponse(10000); // Wait up to 10 seconds
 
     if (response.indexOf("+CMGS:") != -1) {
         Serial.println("✅ SMS Sent Successfully!");
@@ -127,6 +124,7 @@ void makeCall(String number) {
     delay(1000);
 
     Serial.println("✅ Call Initiated Successfully!");
+    Serial.println("CALL_STARTED"); // Notify web app that call has started
 }
 
 void endCall() {
@@ -136,4 +134,5 @@ void endCall() {
     delay(1000);
 
     Serial.println("✅ Call Terminated Successfully!");
+    Serial.println("CALL_ENDED"); // Notify web app that call has ended
 }

@@ -1,20 +1,41 @@
-<form id="smsForm">
-    <input type="text" name="number" placeholder="Enter Phone Number" required>
-    <textarea name="message" placeholder="Enter Message" required></textarea>
-    <button type="submit">Send SMS</button>
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send SMS</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <h1>Send SMS</h1>
+    <form id="smsForm">
+        <input type="text" name="number" placeholder="Enter Phone Number" required>
+        <textarea name="message" placeholder="Enter Message" required></textarea>
+        <button type="submit">Send SMS</button>
+    </form>
 
-<script>
-    document.getElementById('smsForm').addEventListener('submit', function(event) {
-        event.preventDefault();
-        const formData = new FormData(this);
-        fetch('/send', {
-            method: 'POST',
-            body: new URLSearchParams(formData)
-        })
-        .then(response => response.text())
-        .then(data => {
-            alert('Message Sent');
+    <script>
+        const socket = io();
+
+        document.getElementById('smsForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/send', {
+                method: 'POST',
+                body: new URLSearchParams(formData)
+            }).then(response => response.text())
+              .then(data => console.log("SMS command sent, waiting for response..."));
+
+            // Wait for SMS status from Arduino
+            socket.on('sms_status', (status) => {
+                if (status === "SMS_SENT") {
+                    alert("✅ SMS Sent Successfully!");
+                } else if (status === "SMS_FAILED") {
+                    alert("❌ SMS Sending Failed!");
+                }
+            });
         });
-    });
-</script>
+    </script>
+</body>
+</html>
