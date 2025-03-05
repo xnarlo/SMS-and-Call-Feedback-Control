@@ -40,4 +40,10 @@ app.post("/call", (req, res) => {
     res.send("Call Initiated");
 });
 
+app.post("/endcall", (req, res) => {
+    const command = `END_CALL\n`;
+    serialPort.write(command);
+    res.send("Call Ended");
+});
+
 app.listen(port, () => console.log(`🚀 Server running on port ${port}`));

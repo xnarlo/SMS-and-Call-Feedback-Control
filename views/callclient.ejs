@@ -1,4 +1,24 @@
-<form action="/call" method="POST">
+<form id="makeCallForm">
     <input type="text" name="number" placeholder="Enter Phone Number" required>
     <button type="submit">Make Call</button>
 </form>
+<form action="/endcall" method="POST">
+    <button type="submit">End Call</button>
+</form>
+<script>
+    document.getElementById('makeCallForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const number = this.number.value;
+        fetch('/call', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `number=${encodeURIComponent(number)}`,
+        })
+        .then(response => response.text())
+        .then(data => {
+            alert('Call initiated');
+        });
+    });
+</script>

@@ -13,6 +13,8 @@ void loop() {
             sendSMS(receivedData);
         } else if (receivedData.startsWith("MAKE_CALL")) {
             makeCall(receivedData);
+        } else if (receivedData.startsWith("END_CALL")) {
+            endCall();
         }
     }
 }
@@ -32,4 +34,8 @@ void sendSMS(String command) {
 void makeCall(String command) {
     String number = command.substring(command.indexOf(',') + 1);
     Serial1.println("ATD" + number + ";");
+}
+
+void endCall() {
+    Serial1.println("ATH");
 }
