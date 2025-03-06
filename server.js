@@ -3,6 +3,8 @@ const http = require("http");
 const { Server } = require("socket.io");
 const bodyParser = require("body-parser");
 const { serialPort, parser } = require("./serial");
+const smsRoutes = require("./routes/smsRoutes");
+const callRoutes = require("./routes/callRoutes");
 
 require("dotenv").config();
 
@@ -18,148 +20,20 @@ app.use(express.static("public"));
 serialPort.on("open", () => console.log("✅ Serial Port Opened"));
 serialPort.on("error", (err) => console.error("❌ Serial Port Error:", err.message));
 
-let smsStatus = null;
-let latestMessageParts = 0;
-
 parser.on("data", (data) => {
     const trimmedData = data.trim();
     console.log("📩 Received from Arduino:", trimmedData);
 
-    if (trimmedData === "SMS_SENT" || trimmedData === "SMS_FAILED") {
-        smsStatus = trimmedData;
+    if (["SMS_SENT", "SMS_FAILED"].includes(trimmedData)) {
         io.emit("sms_status", trimmedData);
-    } else if (trimmedData === "CALL_STARTED" || trimmedData === "CALL_ENDED") {
+    } else if (["CALL_STARTED", "CALL_ENDED"].includes(trimmedData)) {
         io.emit("call_status", trimmedData);
     }
 });
 
-// Function to wait for "SMS_SENT" or "SMS_FAILED"
-const waitForSmsSent = async () => {
-    return new Promise((resolve, reject) => {
-        smsStatus = null;
-        let timeout = setTimeout(() => reject(new Error("Timeout waiting for SMS_SENT")), 10000);
-
-        let interval = setInterval(() => {
-            if (smsStatus === "SMS_SENT") {
-                clearTimeout(timeout);
-                clearInterval(interval);
-                resolve();
-            } else if (smsStatus === "SMS_FAILED") {
-                clearTimeout(timeout);
-                clearInterval(interval);
-                reject(new Error("SMS sending failed"));
-            }
-        }, 500);
-    });
-};
-
-// ** Routes **
-
-// Render SMS form
-app.get("/sendsms", (req, res) => res.render("sendsms"));
-
-// Render Call Client form
-app.get("/callclient", (req, res) => res.render("callclient"));
-
-// API to send total message parts count
-app.get("/get-message-parts", (req, res) => {
-    res.json({ totalParts: latestMessageParts });
-});
-
-// ** SMS Sending Route **
-app.post("/send", async (req, res) => {
-    let { number, message } = req.body;
-    const maxPartLength = 150;
-
-    // ✅ Function to sanitize the message and replace unsupported characters
-    const sanitizeMessage = (text) => {
-        return text
-            .replace(/’/g, "'")   // Replace smart single quote with normal single quote
-            .replace(/“|”/g, '"') // Replace curly double quotes with normal double quotes
-            .replace(/—/g, "-")   // Replace em dash with simple hyphen
-            .replace(/[^\x20-\x7E]/g, ""); // Remove any other non-ASCII characters
-    };
-
-    message = sanitizeMessage(message); // Sanitize message before sending
-
-    // ✅ If message fits in one SMS, send it normally
-    if (message.length <= maxPartLength) {
-        const command = `SEND_SMS,${number},${message}\n`;
-
-        try {
-            console.log(`📤 Sending single SMS: ${message}`);
-            serialPort.write(command);
-            await waitForSmsSent(); // Wait for response
-
-            io.emit("sms_status", "SMS_SENT"); // Notify frontend
-            return res.send("✅ SMS sent successfully.");
-        } catch (error) {
-            io.emit("sms_status", "SMS_FAILED"); // Notify frontend if failed
-            return res.status(500).send(`❌ Error: ${error.message}`);
-        }
-    }
-
-    // ✅ Multi-part message logic (if message is longer than maxPartLength)
-    const totalParts = Math.ceil(message.length / maxPartLength);
-    latestMessageParts = totalParts;
-    let failedParts = 0;
-
-    try {
-        for (let i = 0; i < totalParts; i++) {
-            let partMessage = message.substring(i * maxPartLength, (i + 1) * maxPartLength);
-            let partIndicator = `(${i + 1}/${totalParts})`;
-            let fullMessage = `${partIndicator} ${partMessage}`;
-            let command = `SEND_SMS,${number},${fullMessage}\n`;
-
-            let attempts = 0;
-            let sent = false;
-
-            while (attempts < 3 && !sent) { // Retry up to 3 times
-                console.log(`📤 Attempt ${attempts + 1}: Sending - ${fullMessage}`);
-                serialPort.write(command);
-
-                try {
-                    await waitForSmsSent();
-                    sent = true;
-                } catch (error) {
-                    attempts++;
-                    console.log(`❌ Attempt ${attempts} failed for part ${partIndicator}. Retrying...`);
-                }
-            }
-
-            if (!sent) {
-                failedParts++;
-            }
-
-            // Small delay before sending the next part
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-
-        if (failedParts === 0) {
-            res.send("✅ All SMS parts sent successfully.");
-        } else {
-            res.status(500).send(`❌ Some messages failed. ${failedParts} parts were not sent.`);
-        }
-    } catch (error) {
-        res.status(500).send(`❌ Error: ${error.message}`);
-    }
-});
-
-
-
-// ** Call Handling Routes **
-app.post("/call", (req, res) => {
-    const { number } = req.body;
-    const command = `MAKE_CALL,${number}\n`;
-    serialPort.write(command);
-    res.send("📞 Call command sent");
-});
-
-app.post("/endcall", (req, res) => {
-    const command = `END_CALL\n`;
-    serialPort.write(command);
-    res.send("📴 End Call command sent");
-});
+// Use modularized routes
+app.use("/", smsRoutes);
+app.use("/", callRoutes);
 
 // Start server
 server.listen(port, () => console.log(`🚀 Server running on port ${port}`));
