@@ -66,10 +66,40 @@ app.get("/get-message-parts", (req, res) => {
     res.json({ totalParts: latestMessageParts });
 });
 
-// ** SMS Sending with Retries and Delays **
+// ** SMS Sending Route **
 app.post("/send", async (req, res) => {
-    const { number, message } = req.body;
+    let { number, message } = req.body;
     const maxPartLength = 150;
+
+    // ✅ Function to sanitize the message and replace unsupported characters
+    const sanitizeMessage = (text) => {
+        return text
+            .replace(/’/g, "'")   // Replace smart single quote with normal single quote
+            .replace(/“|”/g, '"') // Replace curly double quotes with normal double quotes
+            .replace(/—/g, "-")   // Replace em dash with simple hyphen
+            .replace(/[^\x20-\x7E]/g, ""); // Remove any other non-ASCII characters
+    };
+
+    message = sanitizeMessage(message); // Sanitize message before sending
+
+    // ✅ If message fits in one SMS, send it normally
+    if (message.length <= maxPartLength) {
+        const command = `SEND_SMS,${number},${message}\n`;
+
+        try {
+            console.log(`📤 Sending single SMS: ${message}`);
+            serialPort.write(command);
+            await waitForSmsSent(); // Wait for response
+
+            io.emit("sms_status", "SMS_SENT"); // Notify frontend
+            return res.send("✅ SMS sent successfully.");
+        } catch (error) {
+            io.emit("sms_status", "SMS_FAILED"); // Notify frontend if failed
+            return res.status(500).send(`❌ Error: ${error.message}`);
+        }
+    }
+
+    // ✅ Multi-part message logic (if message is longer than maxPartLength)
     const totalParts = Math.ceil(message.length / maxPartLength);
     latestMessageParts = totalParts;
     let failedParts = 0;
@@ -115,9 +145,11 @@ app.post("/send", async (req, res) => {
     }
 });
 
-// ** Call Handling **
+
+
+// ** Call Handling Routes **
 app.post("/call", (req, res) => {
-    const { number } = req.body; // ✅ Correct
+    const { number } = req.body;
     const command = `MAKE_CALL,${number}\n`;
     serialPort.write(command);
     res.send("📞 Call command sent");

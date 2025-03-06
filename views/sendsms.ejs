@@ -38,11 +38,11 @@
             socket.on('sms_status', (status) => {
                 if (status === "SMS_SENT") {
                     sentParts++;
-                    console.log(`✅ Part ${sentParts}/${totalParts} sent.`);
+                    console.log(`✅ SMS part ${sentParts}/${totalParts} sent.`);
     
-                    // If all parts are sent, show success alert
-                    if (sentParts === totalParts) {
-                        alert("✅ All SMS parts sent successfully!");
+                    // Show success alert when a short message is sent
+                    if (totalParts === 0 || sentParts === totalParts) {
+                        alert("✅ SMS sent successfully!");
                     }
                 } else if (status === "SMS_FAILED") {
                     failed = true;
@@ -58,6 +58,7 @@
                 });
         });
     </script>
+    
     
 </body>
 </html>
