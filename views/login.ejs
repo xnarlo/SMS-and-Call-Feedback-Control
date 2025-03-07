@@ -7,7 +7,11 @@
 </head>
 <body>
     <h2>Login</h2>
-    <form id="loginForm" action="/login" method="POST">
+    <% if (error) { %>
+        <p style="color: red;"><%= error %></p>
+    <% } %>
+    
+    <form action="/login" method="POST">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required>
         <br>
@@ -16,34 +20,5 @@
         <br>
         <button type="submit">Login</button>
     </form>
-
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(this);
-            fetch('/login', {
-                method: 'POST',
-                body: new URLSearchParams(formData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = data.redirect;
-                } else {
-                    alert(data.message);
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-                    window.location.href = data.redirect;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred. Please try again.');
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-                window.location.href = '/login';
-            });
-        });
-    </script>
 </body>
 </html>

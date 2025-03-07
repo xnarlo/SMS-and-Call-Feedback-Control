@@ -1,48 +1,63 @@
 const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
+const path = require("path");
+const session = require("express-session");
 const bodyParser = require("body-parser");
-const { serialPort, parser } = require("./serial");
-const smsRoutes = require("./routes/smsRoutes");
-const callRoutes = require("./routes/callRoutes");
-const loginRoute = require('./routes/loginRoutes'); // Update to use loginRoutes
-const indexRoutes = require('./routes/index'); // Add index routes
+const db = require("./config/db");
+const authRoutes = require("./routes/authRoute");
 
 require("dotenv").config();
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
 const port = 3000;
 
 app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views")); // ✅ Ensure Express uses `/views`
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-serialPort.on("open", () => console.log("✅ Serial Port Opened"));
-serialPort.on("error", (err) => console.error("❌ Serial Port Error:", err.message));
+// ✅ Session Middleware
+app.use(
+    session({
+        secret: "your_secret_key",
+        resave: false,
+        saveUninitialized: false,
+        cookie: { secure: false }, // Change to true in production with HTTPS
+    })
+);
 
-parser.on("data", (data) => {
-    const trimmedData = data.trim();
-    console.log("📩 Received from Arduino:", trimmedData);
+// ✅ Middleware to make `user` available in all views
+app.use((req, res, next) => {
+    res.locals.user = req.session.user || null;
+    next();
+});
 
-    if (["SMS_SENT", "SMS_FAILED"].includes(trimmedData)) {
-        io.emit("sms_status", trimmedData);
-    } else if (["CALL_STARTED", "CALL_ENDED"].includes(trimmedData)) {
-        io.emit("call_status", trimmedData);
+// ✅ Middleware to enforce authentication
+app.use((req, res, next) => {
+    if (!req.session.user && req.path !== "/login" && req.path !== "/logout") {
+        return res.redirect("/login");
     }
+    next();
 });
 
-// Use modularized routes
-app.use("/", smsRoutes);
-app.use("/", callRoutes);
-app.use('/', loginRoute); // Use login route
-app.use('/', indexRoutes); // Use index routes
+// ✅ Apply Authentication Routes
+app.use("/", authRoutes);
 
-// Add route for home page
-app.get('/index', (req, res) => {
-    res.render('index');
+// ✅ Home Route
+app.get("/", (req, res) => {
+    res.render("index");
 });
 
-// Start server
-server.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+// ✅ About Route
+app.get("/about", (req, res) => {
+    res.render("about");
+});
+
+
+// ✅ Guide Route
+app.get("/guide", (req, res) => {
+    res.render("guide");
+});
+
+// ✅ Start Server
+app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
