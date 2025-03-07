@@ -61,3 +61,9 @@ app.get("/guide", (req, res) => {
 
 // ✅ Start Server
 app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+
+
+// ✅ Call CLient Route
+app.get('/callclient', (req, res) => {
+    res.render('callclient'); // Make sure 'callclient.ejs' exists in the 'views' folder
+});

@@ -6,8 +6,90 @@
     <title>Dashboard</title>
 </head>
 <body>
+    <!-- Include Navbar  --> 
     <%- include('partials/navbar') %>  <!-- ✅ Include Navbar Here -->
 
-    <h2>Welcome to the Dashboard</h2>
+    <!-- Cards -->
+
+ 
+    <h1>Welcome to the Home Page</h1>
+    <p>Select an option from the dropdown inside each card:</p>
+
+    <!-- Card Section -->
+    <div class="card-container">
+
+
+<!-- Card 1: Send SMS -->
+<div class="card">
+    <img src="/images/smsms.jpg" class="card-img" alt="Card Image 1">
+    <div class="card-body">
+        <h5 class="card-title">Send SMS</h5>
+        <p class="card-text">Generate SMS Notification.</p>
+        
+        <!-- Dropdown Menu (Auto-Redirect) -->
+
+        <!-- Change redirect values into working views  --> 
+
+        <select id="smsOptions" class="dropdown" onchange="location = this.value;">
+            <option selected disabled>Choose an option</option>
+            <option value="/pickup">Pick-up Notification</option>
+            <option value="/quotation">Quotation Reminder</option>
+            <option value="/repairupdate">Repair Update</option>
+            <option value="/forfeiture">Forfeiture Warning</option>
+            <option disabled>──────────</option>
+            <option value="/manualsms">Manually send SMS</option>
+        </select>
+
+    </div>
+</div>
+
+
+<!-- Card 2: Initiate Call -->
+<div class="card">
+    <img src="/images/smcall.jpg" class="card-img" alt="Card Image 2">
+    <div class="card-body">
+        <h5 class="card-title">Initiate CALL</h5>
+        <p class="card-text">Dial client's number.</p>
+
+        <!-- Call Client Button 
+         
+        MAKE SURE TO INCLUDE ROUTE
+        -->
+        <a href="/callclient">
+            <button class="call-btn">Call Client</button>
+        </a>
+    </div>
+</div>
+
+
+<!-- Card 3: Show JO History -->
+<div class="card">
+    <img src="/images/smhistory.jpg" class="card-img" alt="Card Image 3">
+    <div class="card-body">
+        <h5 class="card-title">Show JO History</h5>
+        <p class="card-text">Open JO History TAB.</p>
+
+        <!-- Open History Button -->
+        <button class="history-btn" onclick="openHistory()">Open History</button>
+    </div>
+</div>
+
+<script>
+    function openHistory() {
+        // Change the URL below to the actual history page when available
+        window.open("https://www.google.com", "_blank"); // Opens in a new tab
+    }
+</script>
+
+
+
+
+
+
+
+
+
+
+
 </body>
 </html>
