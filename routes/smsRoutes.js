@@ -1,52 +1,58 @@
 const express = require("express");
 const router = express.Router();
-const { serialPort } = require("../serial");
+const { serialPort, parser } = require("../serial");
 
 let latestMessageParts = 0;
+let isProcessing = false; // Prevent duplicate SMS commands
+let smsStatus = null;
 
-// Function to wait for SMS response
+// Listen for SMS status updates from the serial port
+parser.on("data", (data) => {
+    const trimmedData = data.trim();
+    if (["SMS_SENT", "SMS_FAILED"].includes(trimmedData)) {
+        smsStatus = trimmedData;
+    }
+});
+
+// Route to render SMS form
+router.get("/sendsms", (req, res) => {
+    res.render("sendsms"); // Ensure sendsms.ejs exists in the 'views' directory
+});
+
+// API to get message parts (for tracking multipart SMS)
+router.get("/get-message-parts", (req, res) => {
+    res.json({ totalParts: latestMessageParts });
+});
+
 const waitForSmsSent = async () => {
     return new Promise((resolve, reject) => {
-        let smsStatus = null;
         let timeout = setTimeout(() => reject(new Error("Timeout waiting for SMS_SENT")), 10000);
 
-        let interval = setInterval(() => {
+        let checkInterval = setInterval(() => {
             if (smsStatus === "SMS_SENT") {
                 clearTimeout(timeout);
-                clearInterval(interval);
+                clearInterval(checkInterval);
+                smsStatus = null; // Reset status after success
                 resolve();
             } else if (smsStatus === "SMS_FAILED") {
                 clearTimeout(timeout);
-                clearInterval(interval);
+                clearInterval(checkInterval);
+                smsStatus = null;
                 reject(new Error("SMS sending failed"));
             }
         }, 500);
     });
 };
 
-// Sanitize message to remove unsupported characters
-const sanitizeMessage = (text) => {
-    return text
-        .replace(/’/g, "'")  // Replace smart quotes
-        .replace(/“|”/g, '"')
-        .replace(/—/g, "-")
-        .replace(/[^\x20-\x7E]/g, ""); // Remove non-ASCII characters
-};
-
-// Render SMS form
-router.get("/sendsms", (req, res) => res.render("sendsms"));
-
-// API to get message parts
-router.get("/get-message-parts", (req, res) => {
-    res.json({ totalParts: latestMessageParts });
-});
-
-// Send SMS
 router.post("/send", async (req, res) => {
+    if (isProcessing) {
+        return res.status(429).send("⚠️ SMS already being processed. Please wait.");
+    }
+    
+    isProcessing = true;
+
     let { number, message } = req.body;
     const maxPartLength = 150;
-
-    message = sanitizeMessage(message);
 
     if (message.length <= maxPartLength) {
         const command = `SEND_SMS,${number},${message}\n`;
@@ -54,13 +60,14 @@ router.post("/send", async (req, res) => {
         try {
             serialPort.write(command);
             await waitForSmsSent();
+            isProcessing = false;
             return res.send("✅ SMS sent successfully.");
         } catch (error) {
+            isProcessing = false;
             return res.status(500).send(`❌ Error: ${error.message}`);
         }
     }
 
-    // Multi-part message logic
     const totalParts = Math.ceil(message.length / maxPartLength);
     latestMessageParts = totalParts;
     let failedParts = 0;
@@ -86,14 +93,14 @@ router.post("/send", async (req, res) => {
             }
 
             if (!sent) failedParts++;
-
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
+        isProcessing = false;
         if (failedParts === 0) res.send("✅ All SMS parts sent successfully.");
         else res.status(500).send(`❌ Some messages failed. ${failedParts} parts were not sent.`);
-
     } catch (error) {
+        isProcessing = false;
         res.status(500).send(`❌ Error: ${error.message}`);
     }
 });

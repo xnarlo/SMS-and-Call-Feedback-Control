@@ -16,30 +16,38 @@
 
     <script>
         const socket = io();
-        let totalParts = 1; // Default to 1 (in case of short messages)
+        let totalParts = 1;
         let sentParts = 0;
         let failed = false;
+        let isSending = false; // Prevent multiple submissions
     
-        // Listen for SMS status from Arduino - only once
         socket.on('sms_status', (status) => {
             if (status === "SMS_SENT") {
                 sentParts++;
                 console.log(`✅ SMS part ${sentParts}/${totalParts} sent.`);
     
-                // Show success alert only when all parts are sent
                 if (sentParts >= totalParts) {
                     alert("✅ SMS sent successfully!");
+                    isSending = false; // Allow new submissions
+                    document.querySelector('button[type="submit"]').disabled = false; // Re-enable the button
                 }
             } else if (status === "SMS_FAILED") {
                 failed = true;
                 alert("❌ SMS Sending Failed! Some messages may not have been sent.");
+                isSending = false; // Allow new submissions
+                document.querySelector('button[type="submit"]').disabled = false;
             }
         });
     
         document.getElementById('smsForm').addEventListener('submit', function(event) {
             event.preventDefault();
+    
+            if (isSending) return; // Prevent duplicate submissions
+            isSending = true;
+            document.querySelector('button[type="submit"]').disabled = true; // Disable the button
+    
             const formData = new FormData(this);
-            sentParts = 0; // Reset counter
+            sentParts = 0;
             failed = false;
     
             fetch('/send', {
@@ -48,16 +56,22 @@
             }).then(response => response.text())
               .then(data => {
                   console.log("📨 SMS sending started...");
+              }).catch(error => {
+                  console.error("❌ Error sending SMS:", error);
+                  isSending = false;
+                  document.querySelector('button[type="submit"]').disabled = false;
               });
     
-            // Fetch the total number of parts
             fetch('/get-message-parts')
                 .then(response => response.json())
                 .then(data => {
-                    totalParts = data.totalParts || 1; // Ensure at least 1
+                    totalParts = data.totalParts || 1;
                 });
         });
     </script>
+    
+    
+    
     
     
     
