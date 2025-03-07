@@ -6,6 +6,7 @@ const { serialPort, parser } = require("./serial");
 const smsRoutes = require("./routes/smsRoutes");
 const callRoutes = require("./routes/callRoutes");
 const loginRoute = require('./routes/loginRoutes'); // Update to use loginRoutes
+const indexRoutes = require('./routes/index'); // Add index routes
 
 require("dotenv").config();
 
@@ -36,6 +37,7 @@ parser.on("data", (data) => {
 app.use("/", smsRoutes);
 app.use("/", callRoutes);
 app.use('/', loginRoute); // Use login route
+app.use('/', indexRoutes); // Use index routes
 
 // Add route for home page
 app.get('/index', (req, res) => {
