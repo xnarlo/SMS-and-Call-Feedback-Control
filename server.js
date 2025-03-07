@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const { serialPort, parser } = require("./serial");
 const smsRoutes = require("./routes/smsRoutes");
 const callRoutes = require("./routes/callRoutes");
-const loginRoute = require('./routes/login'); // Add login route
+const loginRoute = require('./routes/loginRoutes'); // Update to use loginRoutes
 
 require("dotenv").config();
 
@@ -36,6 +36,11 @@ parser.on("data", (data) => {
 app.use("/", smsRoutes);
 app.use("/", callRoutes);
 app.use('/', loginRoute); // Use login route
+
+// Add route for home page
+app.get('/index', (req, res) => {
+    res.render('index');
+});
 
 // Start server
 server.listen(port, () => console.log(`🚀 Server running on port ${port}`));

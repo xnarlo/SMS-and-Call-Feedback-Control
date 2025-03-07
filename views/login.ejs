@@ -27,11 +27,21 @@
             })
             .then(response => response.json())
             .then(data => {
-                alert(data.message);
+                if (data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    alert(data.message);
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                    window.location.href = data.redirect;
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('An error occurred. Please try again.');
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                window.location.href = '/login';
             });
         });
     </script>
