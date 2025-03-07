@@ -16,9 +16,25 @@
 
     <script>
         const socket = io();
-        let totalParts = 0;
+        let totalParts = 1; // Default to 1 (in case of short messages)
         let sentParts = 0;
         let failed = false;
+    
+        // Listen for SMS status from Arduino - only once
+        socket.on('sms_status', (status) => {
+            if (status === "SMS_SENT") {
+                sentParts++;
+                console.log(`✅ SMS part ${sentParts}/${totalParts} sent.`);
+    
+                // Show success alert only when all parts are sent
+                if (sentParts >= totalParts) {
+                    alert("✅ SMS sent successfully!");
+                }
+            } else if (status === "SMS_FAILED") {
+                failed = true;
+                alert("❌ SMS Sending Failed! Some messages may not have been sent.");
+            }
+        });
     
         document.getElementById('smsForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -34,30 +50,16 @@
                   console.log("📨 SMS sending started...");
               });
     
-            // Listen for SMS status from Arduino
-            socket.on('sms_status', (status) => {
-                if (status === "SMS_SENT") {
-                    sentParts++;
-                    console.log(`✅ SMS part ${sentParts}/${totalParts} sent.`);
-    
-                    // Show success alert when a short message is sent
-                    if (totalParts === 0 || sentParts === totalParts) {
-                        alert("✅ SMS sent successfully!");
-                    }
-                } else if (status === "SMS_FAILED") {
-                    failed = true;
-                    alert("❌ SMS Sending Failed! Some messages may not have been sent.");
-                }
-            });
-    
             // Fetch the total number of parts
             fetch('/get-message-parts')
                 .then(response => response.json())
                 .then(data => {
-                    totalParts = data.totalParts;
+                    totalParts = data.totalParts || 1; // Ensure at least 1
                 });
         });
     </script>
+    
+    
     
     
 </body>
